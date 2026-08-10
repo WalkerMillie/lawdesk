@@ -1,0 +1,88 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  # 리눅스: 정적 분석 + 전체 테스트 + 외부 도구가 있는 상태의 통합 검증
+  test-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+          check-latest: true
+
+      - name: gofmt 검사
+        run: |
+          out=$(gofmt -l .)
+          if [ -n "$out" ]; then echo "정렬되지 않은 파일:"; echo "$out"; exit 1; fi
+
+      - run: go vet ./...
+      - run: go test -race ./...
+
+      # PDF/OCR 경로까지 실제로 태워 본다
+      - name: 외부 도구 설치
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -q mupdf-tools tesseract-ocr tesseract-ocr-kor \
+                                     fonts-nanum python3-pil python3-reportlab python3-docx
+
+      - name: 테스트 코퍼스 생성
+        run: python3 testdata/gen_corpus.py
+
+      - name: 추출 파이프라인 검증
+        run: go run ./cmd/extractdump -root testdata/corpus
+
+      - name: OCR 정확도 측정
+        run: python3 testdata/measure_ocr.py
+
+      - name: 코퍼스 포함 재테스트
+        run: go test ./internal/extract/ -v -run TestDocxCorpus
+
+  # 윈도우: 실제 배포 대상 OS에서 도는지 확인한다.
+  # Wine 이나 크로스컴파일로는 잡히지 않는 경로 처리·syscall 문제를 여기서 잡는다.
+  test-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+          check-latest: true
+      - run: go vet ./...
+      - run: go test ./...
+      - name: 실행 확인
+        run: |
+          go build -o lawdesk.exe ./cmd/lawdesk
+          ./lawdesk.exe -version
+
+  # 배포 대상 전 플랫폼이 빌드되는지 확인 (cgo 없이)
+  cross-build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - { goos: windows, goarch: amd64 }
+          - { goos: windows, goarch: arm64 }
+          - { goos: linux,   goarch: amd64 }
+          - { goos: darwin,  goarch: arm64 }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+          check-latest: true
+      - name: build ${{ matrix.goos }}/${{ matrix.goarch }}
+        env:
+          CGO_ENABLED: '0'
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+        run: go build -trimpath -ldflags "-s -w" -o /tmp/lawdesk ./cmd/lawdesk

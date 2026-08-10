@@ -1,0 +1,31 @@
+# 빌드 산출물
+/dist/
+/lawdesk
+/lawdesk.exe
+*.exe
+*.test
+
+# 인덱스 DB (파생 데이터 — 언제든 재생성 가능)
+*.db
+*.db-wal
+*.db-shm
+
+# 번들할 서드파티 바이너리
+# 용량(60~80MB)과 재배포 라이선스 때문에 커밋하지 않는다.
+# scripts/fetch-tools.sh 로 준비한다. README.md 는 자리표시자라 유지한다.
+/internal/bundle/assets/*
+!/internal/bundle/assets/README.md
+
+# 합성 테스트 코퍼스 (gen_corpus.py 로 재생성 — seed 고정이라 결과가 동일하다)
+/testdata/corpus/
+
+# 편집기 / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*~
+
+# 파이썬 캐시 (테스트 코퍼스 생성 스크립트)
+__pycache__/
+*.pyc

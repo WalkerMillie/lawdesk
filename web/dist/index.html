@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>lawdesk — 로컬 문서 검색</title>
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <span class="logo">§</span>
+    <div>
+      <strong>lawdesk</strong>
+      <small id="version"></small>
+    </div>
+  </div>
+
+  <div class="rootbar">
+    <input id="rootInput" type="text" placeholder="색인할 폴더 경로 (예: D:\법무팀\문서)" spellcheck="false">
+    <button id="pickBtn" class="btn" title="윈도우 폴더 선택 창 열기">폴더 선택</button>
+    <button id="indexBtn" class="btn btn-primary">색인 시작</button>
+    <button id="cancelBtn" class="btn btn-danger" hidden>중단</button>
+  </div>
+
+  <div class="offline" title="이 프로그램은 외부로 어떤 데이터도 보내지 않습니다">
+    <span class="dot"></span> 오프라인
+  </div>
+</header>
+
+<div id="progress" class="progress" hidden>
+  <div class="bar"><div id="barFill" class="fill"></div></div>
+  <div class="ptext"><span id="progressText"></span><span id="progressFile" class="pfile"></span></div>
+</div>
+
+<div id="banner" class="banner" hidden></div>
+
+<main>
+  <aside class="sidebar">
+    <div class="side-head">
+      <span>폴더</span>
+      <span id="docCount" class="muted"></span>
+    </div>
+    <div id="tree" class="tree"></div>
+    <div id="statsBox" class="stats"></div>
+  </aside>
+
+  <section class="center">
+    <div class="searchbar">
+      <input id="q" type="search" autocomplete="off" spellcheck="false"
+             placeholder="본문 검색 —  손해배상 · 2021다12345 · 제7조 · 지연손해금">
+      <span id="searchMeta" class="muted"></span>
+    </div>
+    <div id="results" class="results"></div>
+  </section>
+
+  <aside id="detail" class="detail">
+    <div class="empty">문서를 선택하면 여기에 상세 정보가 표시됩니다.</div>
+  </aside>
+</main>
+
+<script src="app.js"></script>
+</body>
+</html>
