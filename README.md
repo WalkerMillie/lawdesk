@@ -118,9 +118,15 @@ sudo apt install mupdf-tools tesseract-ocr tesseract-ocr-kor   # Debian/Ubuntu
 빌드하면 실행파일 안에 임베드된다. 준비는 `scripts/fetch-tools.sh` 가 해 준다.
 
 ```bash
-./scripts/fetch-tools.sh          # mutool.exe · tesseract.exe · kor.traineddata 준비
+./scripts/fetch-tools.sh          # mutool · tesseract · kor.traineddata · VC 런타임 준비
+./scripts/check-bundle.sh         # DLL 의존성이 전부 충족되는지 검사
 make package-windows              # 약 80MB 단일 exe
 ```
+
+`check-bundle.sh` 는 번들 바이너리의 import 테이블을 훑어, 필요한 DLL 이 전부
+번들에 있거나 윈도우 기본 탑재인지 확인한다. v0.1.0 이 Visual C++ 런타임을
+빠뜨린 채 나가 PDF 가 통째로 안 읽혔는데, 개발 환경·CI·Wine 에는 그 런타임이
+이미 있어 실행 테스트로는 잡히지 않았다. 그래서 정적 검사를 따로 둔다.
 
 > 서드파티 바이너리는 용량과 재배포 라이선스(MuPDF = AGPL) 때문에
 > 저장소에 커밋하지 않는다. 릴리스 아티팩트에는 `THIRD-PARTY-LICENSES.txt` 로

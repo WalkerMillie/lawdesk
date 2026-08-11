@@ -21,6 +21,11 @@ MUPDF_URL="https://mupdf.com/downloads/archive/mupdf-${MUPDF_VER}-windows.zip"
 TESS_VER=5.4.0.20240606
 TESS_URL="https://github.com/UB-Mannheim/tesseract/releases/download/v${TESS_VER}/tesseract-ocr-w64-setup-${TESS_VER}.exe"
 KOR_URL="https://github.com/tesseract-ocr/tessdata_fast/raw/main/kor.traineddata"
+# mutool 은 MSVC 로 빌드돼 Visual C++ 재배포 런타임을 요구한다. 개발 PC·CI
+# 러너·Wine 에는 이미 있어서 테스트로는 안 잡히지만, 깨끗한 윈도우에서는
+# mutool 이 실행조차 안 되고 PDF 가 통째로 안 읽힌다. app-local 로 동봉한다.
+VCREDIST_URL="https://aka.ms/vs/17/release/vc_redist.x64.exe"
+VCREDIST_DLLS="msvcp140.dll vcruntime140.dll vcruntime140_1.dll"
 
 usage() {
   cat <<EOF
@@ -42,7 +47,7 @@ lawdesk 도구 번들링 스크립트
   릴리스에는 THIRD-PARTY-LICENSES.txt 로 고지와 AGPL 소스 URL 을 동봉한다.
 
 필요한 도구
-  curl · python3 · 7z(p7zip-full) · objdump·strip(binutils)
+  curl · python3 · 7z(p7zip-full) · cabextract · objdump·strip(binutils)
 
 용량 참고
   받는 중간 산출물 약 200MB, 최종 assets/ 약 66MB, 완성된 exe 약 80MB.
@@ -61,7 +66,7 @@ need() {
   for c in "$@"; do command -v "$c" >/dev/null 2>&1 || miss+=("$c"); done
   if [ ${#miss[@]} -gt 0 ]; then
     echo "필요한 명령이 없습니다: ${miss[*]}" >&2
-    echo "  Debian/Ubuntu: sudo apt install curl python3 p7zip-full binutils" >&2
+    echo "  Debian/Ubuntu: sudo apt install curl python3 p7zip-full binutils cabextract" >&2
     exit 1
   fi
 }
@@ -78,7 +83,7 @@ show_assets() {
 }
 
 fetch() {
-  need curl python3 7z objdump strip
+  need curl python3 7z objdump strip cabextract
 
   if [ "${1:-}" != "-y" ]; then
     echo
@@ -157,7 +162,34 @@ PY
     x86_64-w64-mingw32-strip "$f" 2>/dev/null || strip "$f" 2>/dev/null || true
   done
 
+  # MSVC 런타임은 strip 하지 않는다(서명된 MS 배포본을 그대로 둔다).
+  echo "==> Visual C++ 런타임 내려받는 중 (약 25MB)"
+  curl -fL --progress-bar -o "$work/vc_redist.x64.exe" "$VCREDIST_URL"
+
+  echo "==> VC 런타임 DLL 추출"
+  # 버든들(burn bundle) 안에 캐비닛이 중첩돼 있다. 바깥을 먼저 풀고,
+  # amd64 판이 들어있는 캐비닛에서 필요한 것만 꺼낸다.
+  mkdir -p "$work/vc"
+  cabextract -q -d "$work/vc" "$work/vc_redist.x64.exe" >/dev/null 2>&1 || true
+  found=0
+  for cab in "$work"/vc/a*; do
+    [ -f "$cab" ] || continue
+    cabextract -l "$cab" 2>/dev/null | grep -q 'msvcp140.dll_amd64' || continue
+    cabextract -q -d "$work/vc/out" -F '*_amd64' "$cab" >/dev/null 2>&1
+    found=1
+    break
+  done
+  [ "$found" = 1 ] || { echo "VC 런타임 캐비닛을 찾지 못했습니다." >&2; exit 1; }
+  for dll in $VCREDIST_DLLS; do
+    src="$work/vc/out/${dll}_amd64"
+    [ -f "$src" ] || { echo "없음: $dll" >&2; exit 1; }
+    cp "$src" "$ASSETS/$dll"
+  done
+
   show_assets
+
+  echo "==> DLL 의존성 검사"
+  "$REPO_ROOT/scripts/check-bundle.sh" "$ASSETS"
 }
 
 case "${1:-}" in
@@ -169,6 +201,8 @@ case "${1:-}" in
     # README.md 는 자리표시자이므로 덮어쓰지 않는다.
     rsync -a --exclude 'README.md' "$SRC"/ "$ASSETS"/
     show_assets
+    echo "==> DLL 의존성 검사"
+    "$REPO_ROOT/scripts/check-bundle.sh" "$ASSETS"
     ;;
   -h|--help)
     usage
