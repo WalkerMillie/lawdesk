@@ -29,6 +29,20 @@
 
 ---
 
+## 받기
+
+**[→ 최신 릴리스에서 `lawdesk.exe` 내려받기](https://github.com/WalkerMillie/lawdesk/releases/latest)**
+
+설치 과정이 없다. 파일 하나를 받아 더블클릭하면 된다.
+PDF 처리(MuPDF)와 한국어 OCR(Tesseract)이 실행파일 안에 들어 있다.
+
+> 코드 서명이 없어 첫 실행 시 SmartScreen 경고가 뜬다 — `추가 정보` → `실행`.
+
+이 저장소를 클론해도 exe 는 없다. 빌드 산출물은 커밋하지 않으므로
+직접 만들려면 아래 [빌드](#빌드) 를 참고할 것.
+
+---
+
 ## 사용법
 
 ```
@@ -101,10 +115,16 @@ sudo apt install mupdf-tools tesseract-ocr tesseract-ocr-kor   # Debian/Ubuntu
 ```
 
 배포용 단일 exe 를 만들려면 윈도우용 바이너리를 `internal/bundle/assets/` 에 넣고
-빌드하면 실행파일 안에 임베드된다. 준비 방법은 `scripts/fetch-tools.sh --help` 참고.
+빌드하면 실행파일 안에 임베드된다. 준비는 `scripts/fetch-tools.sh` 가 해 준다.
+
+```bash
+./scripts/fetch-tools.sh          # mutool.exe · tesseract.exe · kor.traineddata 준비
+make package-windows              # 약 80MB 단일 exe
+```
 
 > 서드파티 바이너리는 용량과 재배포 라이선스(MuPDF = AGPL) 때문에
-> 저장소에 커밋하지 않는다. 상용 배포 시 라이선스를 반드시 확인할 것.
+> 저장소에 커밋하지 않는다. 릴리스 아티팩트에는 `THIRD-PARTY-LICENSES.txt` 로
+> 고지와 AGPL 소스 URL 을 동봉한다. **상용 납품 시 MuPDF 라이선스를 먼저 확인할 것.**
 
 ### 테스트 코퍼스
 
