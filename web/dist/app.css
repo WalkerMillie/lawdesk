@@ -137,6 +137,12 @@ main:has(.progress:not([hidden])) { height: calc(100vh - 96px); }
 .hit h3 { margin: 0 0 3px; font-size: 14px; font-weight: 600; }
 .hit .path { font-family: var(--mono); font-size: 11px; color: var(--muted); margin-bottom: 6px; }
 .hit .snip { font-size: 13px; color: #4a463f; }
+/* 본문에서 뽑은 표제 — 파일명 아래 한 줄. 참고용이라 눈에 덜 띄게 둔다. */
+.doctitle {
+  font-size: 12px; color: #6b665d; margin: 0 0 3px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.detail .doctitle { font-size: 12.5px; margin-bottom: 4px; white-space: normal; }
 .hit mark { background: var(--mark); padding: 0 1px; border-radius: 2px; }
 
 .tag {

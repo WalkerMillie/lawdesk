@@ -292,7 +292,8 @@ function renderResults(hits, q, error) {
   }
   box.innerHTML = hits.map((h) => `
     <article class="hit${h.id === state.selectedId ? ' active' : ''}" data-id="${h.id}">
-      <h3>${esc(h.title || h.name)}${kindTag(h.kind)}</h3>
+      <h3>${esc(h.name)}${kindTag(h.kind)}</h3>
+      ${docTitleLine(h)}
       <div class="path">${esc(h.rel_path)}</div>
       <div class="snip">${snippetHTML(h.snippet || h.summary || '')}</div>
     </article>`).join('');
@@ -301,6 +302,20 @@ function renderResults(hits, q, error) {
     el.onclick = () => selectDoc(Number(el.dataset.id));
     el.ondblclick = () => openDoc(Number(el.dataset.id), false);
   });
+}
+
+// docTitleLine 은 본문에서 뽑은 표제를 파일명 아래 한 줄로 덧붙인다.
+//
+// 표제 자리에는 파일명을 쓴다. 본문 첫 줄에서 뽑은 표제는 빗나갈 때가 있다
+// (표의 단위 주석 "(단위: 주, 원, %)" 이 제목으로 잡히거나, 스캔본에서 도장이
+// 먼저 읽히거나). 실무에서는 파일명이 가장 정확한 표제라 그쪽을 믿는다.
+// 뽑은 표제는 참고용으로만 남기고, 파일명과 사실상 같으면 아예 감춘다.
+function docTitleLine(d) {
+  const t = (d.title || '').trim();
+  if (!t) return '';
+  const norm = (s) => s.replace(/\.[a-z0-9]+$/i, '').replace(/[\s_·-]/g, '').toLowerCase();
+  if (norm(t) === norm(d.name || '')) return '';
+  return `<div class="doctitle" title="본문에서 뽑은 표제">${esc(t)}</div>`;
 }
 
 /* ------------------------------------------------------------ 상세 */
@@ -331,7 +346,8 @@ async function selectDoc(id) {
   ].filter(Boolean);
 
   $('detail').innerHTML = `
-    <h2>${esc(d.title || d.name)}${kindTag(d.kind)}</h2>
+    <h2>${esc(d.name)}${kindTag(d.kind)}</h2>
+    ${docTitleLine(d)}
     <div class="path">${esc(d.path)}</div>
     <div class="actions">
       <button class="btn btn-primary" id="openBtn">파일 열기</button>
